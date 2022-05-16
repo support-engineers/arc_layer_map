@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <script src="https://unpkg.com/deck.gl@^8.7.0/dist.min.js"></script>
+    <script src="https://unpkg.com/@deck.gl/carto@^8.7.0/dist.min.js"></script>
+    
+    <script src="https://libs.cartocdn.com/mapbox-gl/v1.13.0/mapbox-gl.js"></script>
+    <link href="https://libs.cartocdn.com/mapbox-gl/v1.13.0/mapbox-gl.css" rel="stylesheet" />
+  </head>
+
+  <body style="margin: 0; padding: 0; background-color: #212121;">
+    <div id="map" style="width: 100vw; height: 100vh"></div>
+  </body>
+
+  <script type="text/javascript">
+    async function initialize() {
+      deck.carto.setDefaultCredentials({
+        apiBaseUrl: 'https://gcp-us-east1.api.carto.com',
+        accessToken: 'eyJhbGciOiJIUzI1NiJ9.eyJhIjoiYWNfN3hoZnd5bWwiLCJqdGkiOiJhYTYzM2NlMSJ9.iQRALk4Dn06dzlYFvdzLnsPzxpbUyt-bNX69N5sDwNU'
+      });
+
+      // Fetch Data from CARTO
+      const { data: geojsonData } =  await deck.carto.fetchLayerData({
+        type: deck.carto.MAP_TYPES.QUERY,
+        source: "SELECT a.geom, ST_X(b.geom) as lat, ST_Y(b.geom) as lon, b.order_imei FROM support_team.public.mock_acs_hourly_nokia_csv_matview a INNER JOIN support_team.public.mock_lifecycle_two_csv_post b ON  a.imei = b.order_imei LIMIT 100",
+        connection: 'gh_connetion',
+        format: deck.carto.FORMATS.GEOJSON
+      });
+
+      // Create deck.gl map
+      const deckgl = new deck.DeckGL({
+        container: 'map',
+        mapStyle: deck.carto.BASEMAP.DARK_MATTER,
+        initialViewState: {
+          latitude: 30,
+          longitude: 10,
+          zoom: 1,
+          pitch: 30
+        },
+        controller: true,
+        layers: [
+          new deck.ArcLayer({
+            id: 'arc-layer',
+            data: geojsonData.features,
+            getSourcePosition: f => [f.properties.lat, f.properties.lon],
+            getTargetPosition: f => f.geometry.coordinates,
+            getSourceColor: [0, 128, 200],
+            getTargetColor: [200, 0, 80],
+            getWidth: 5,
+            getHeight: 1
+          })
+        ]
+      });
+    }
+
+    initialize();    
+  </script>
+</html>
